@@ -6,30 +6,39 @@ class TranslatorAgent:
         print("   Translator ready (Qwen3)")
 
     def _build_prompt(self, content: str) -> str:
-        return f"""You are a multilingual language detection and translation engine.
+        return f"""You are a strict multilingual language detection and translation engine.
+Your ONLY job is to detect language and translate. Nothing else.
 
 TASK:
 1. Detect the language of the input text
-2. If the text is NOT in English, translate it to English naturally
+2. If the text is NOT in English, translate it to English WORD-FOR-WORD
 3. If the text IS in English, return it as-is
-4. Preserve tone, emotion, and intent — do NOT sanitize or soften the meaning
+4. Preserve tone, emotion, and intent exactly — do NOT sanitize, soften, or improve
 
-IMPORTANT:
-- Keep slang, insults, and informal language as close to the original intent as possible
-- If the text mixes languages (code-switching), translate the non-English parts
-- Do NOT explain, do NOT add commentary
+STRICT RULES:
+- Translate LITERALLY — choose the closest English word, not the "better" word
+- Preserve slang, insults, profanity, and informal language exactly as intended
+- Do NOT substitute informal words with formal alternatives
+- Do NOT fix grammar unless required for basic English readability
+- Do NOT paraphrase — if the source is blunt, the translation must be blunt
+- Filipino, Tagalog, Cebuano and other Philippine languages are NOT English — always translate them
+- If text mixes languages (code-switching), translate ONLY the non-English parts
+- Preserve original punctuation and capitalization as much as possible
 
-Reply in EXACTLY this format:
+OUTPUT RULES:
+- Reply ONLY in the format below — no extra lines, no explanation, no commentary
+- Do NOT add any text before or after the format
+
 DETECTED_LANGUAGE: <language name>
 IS_ENGLISH: <YES or NO>
-TRANSLATED: <translated text or original if already English>
+TRANSLATED: <exact translated text or original if already English>
 
 Input text:
 \"\"\"{content}\"\"\""""
 
     def translate(self, content: str) -> dict:
         prompt = self._build_prompt(content)
-        raw_response = self.rag.llm_sarcasm.invoke(prompt)
+        raw_response = self.rag.llm_translator.invoke(prompt)
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
         raw = raw.strip()
 

@@ -32,7 +32,7 @@ MODELS = {
     },
     LLMProvider.GROQ: {
         "qwen":  "qwen/qwen3-32b",
-        "llama": "llama-3.3-70b-versatile",
+        "gpt":   "openai/gpt-oss-120b",
     },
 }
 
@@ -46,9 +46,17 @@ MODEL_CONFIGS = {
                 "top_p":                 0.9,
             },
         },
+        "gpt": {
+            "temperature": 1,
+            "model_kwargs": {
+                "max_completion_tokens": 8192,
+                "top_p": 1,
+            },
+        }
     },
     LLMProvider.LOCAL: {
         "qwen":  {"temperature": LLM_TEMPERATURE},
+        "llama": {"temperature": LLM_TEMPERATURE},
     },
 }
 
@@ -57,12 +65,7 @@ MODEL_CONFIGS = {
 # ---------------------------------------------------------------------------
 
 LLM_QWEN  = MODELS[ACTIVE_PROVIDER]["qwen"]
-
-AGENT_MODELS = {
-    "sarcasm":    LLM_QWEN,
-    "classifier": LLM_QWEN,
-    "responder":  LLM_QWEN,
-}
+LLM_GPT = MODELS[ACTIVE_PROVIDER]["gpt"]
 
 CTX_WINDOWS = {
     LLM_QWEN:  2048,
@@ -75,7 +78,7 @@ CTX_WINDOWS = {
 class ToxicityRAG:
     def __init__(self):
         self._llm_qwen  = None
-        self._llm_llama = None
+        self._llm_gpt = None
 
     # models
     @property
@@ -85,12 +88,16 @@ class ToxicityRAG:
         return self._llm_qwen
 
     @property
-    def llm_llama(self) -> OllamaLLM:
-        if self._llm_llama is None:
-            self._llm_llama = self._connect_llm(LLM_LLAMA)
-        return self._llm_llama
+    def llm_gpt(self) -> OllamaLLM:
+        if self._llm_gpt is None:
+            self._llm_gpt = self._connect_llm(LLM_GPT)
+        return self._llm_gpt
 
     # agents
+    @property
+    def llm_translator(self) -> OllamaLLM:
+        return self.llm_gpt
+
     @property
     def llm_sarcasm(self) -> OllamaLLM:
         return self.llm_qwen
@@ -104,7 +111,8 @@ class ToxicityRAG:
         return self.llm_qwen
 
     def _connect_llm(self, model_name: str):
-        config = MODEL_CONFIGS[ACTIVE_PROVIDER]["qwen"]
+        model_key = next(k for k, v in MODELS[ACTIVE_PROVIDER].items() if v == model_name)
+        config = MODEL_CONFIGS[ACTIVE_PROVIDER][model_key]
 
         if ACTIVE_PROVIDER == LLMProvider.GROQ:
             from langchain_groq import ChatGroq
