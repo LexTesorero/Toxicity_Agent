@@ -1,8 +1,8 @@
-from rag_setup import ToxicityRAG, ACTIVE_PROVIDER, LLM_QWEN
+from rag_setup import ToxicityRAG, ACTIVE_PROVIDER, LLM_GPT, LLM_GPT_SAFE
 
 print("=" * 50)
 print(f"  PROVIDER : {ACTIVE_PROVIDER.value.upper()}")
-print(f"  Qwen model  → {LLM_QWEN}")
+print(f"  model  → {LLM_GPT}, {LLM_GPT_SAFE}")
 print("=" * 50)
 
 rag = ToxicityRAG()
