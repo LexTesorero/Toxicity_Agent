@@ -1,61 +1,15 @@
-from langchain_ollama import OllamaLLM
-from dotenv import load_dotenv
 import os
-from enum import Enum
+from langchain_ollama import OllamaLLM
+from config import (
+    ACTIVE_PROVIDER, LLMProvider,
+    MODELS, MODEL_CONFIGS,
+    LLM_GPT, LLM_GPT_SAFE,
+)
 
-load_dotenv()
-
-class LLMProvider(str, Enum):
-    LOCAL = "local"
-    GROQ  = "groq"
-
-ACTIVE_PROVIDER = LLMProvider.GROQ
-
-LLM_TEMPERATURE = 0.2
-
-MODELS = {
-    LLMProvider.LOCAL: {
-        "qwen":  "qwen2.5:7b",
-        "llama": "llama3.1:8b",
-    },
-    LLMProvider.GROQ: {
-        "gpt":      "openai/gpt-oss-120b",
-        "gpt-safe": "openai/gpt-oss-safeguard-20b",
-    },
-}
-
-MODEL_CONFIGS = {
-    LLMProvider.GROQ: {
-        "gpt": {
-            "temperature":      1,
-            "reasoning_effort": "medium",
-            "model_kwargs": {
-                "max_completion_tokens": 8192,
-                "top_p": 1,
-            },
-        },
-        "gpt-safe": {
-            "temperature":      1,
-            "reasoning_effort": "medium",
-            "model_kwargs": {
-                "max_completion_tokens": 8192,
-                "top_p": 1,
-            },
-        },
-    },
-    LLMProvider.LOCAL: {
-        "qwen":  {"temperature": LLM_TEMPERATURE},
-        "llama": {"temperature": LLM_TEMPERATURE},
-    },
-}
-
-LLM_GPT      = MODELS[ACTIVE_PROVIDER]["gpt"]
-LLM_GPT_SAFE = MODELS[ACTIVE_PROVIDER]["gpt-safe"]
-
-class ToxicityRAG:
+class LLMRegistry:
     def __init__(self):
-        self._llm_gpt      = None  # was _llm_qwen_safe (wrong name)
-        self._llm_gpt_safe = None  # was missing
+        self._llm_gpt      = None
+        self._llm_gpt_safe = None
 
     @property
     def llm_gpt(self):
@@ -88,7 +42,7 @@ class ToxicityRAG:
 
     def _connect_llm(self, model_name: str):
         model_key = next(k for k, v in MODELS[ACTIVE_PROVIDER].items() if v == model_name)
-        config = MODEL_CONFIGS[ACTIVE_PROVIDER][model_key]
+        config    = MODEL_CONFIGS[ACTIVE_PROVIDER][model_key]
 
         if ACTIVE_PROVIDER == LLMProvider.GROQ:
             from langchain_groq import ChatGroq

@@ -1,8 +1,8 @@
-from rag_setup import ToxicityRAG
+from llm_registry import LLMRegistry
 
 class SarcasmDetector:
-    def __init__(self, rag: ToxicityRAG):
-        self.rag = rag
+    def __init__(self, registry: LLMRegistry):
+        self.registry = registry
         print("   SarcasmDetector ready")
 
     def _build_prompt(self, content: str) -> str:
@@ -48,14 +48,14 @@ class SarcasmDetector:
 
     def detect(self, content: str) -> dict:
         prompt = self._build_prompt(content)
-        raw_response = self.rag.llm_sarcasm.invoke(prompt)
+        raw_response = self.registry.llm_sarcasm.invoke(prompt)
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
         raw = raw.strip().upper()
 
-        # strip <think> block if present (Qwen3 reasoning model)
+        # strip <think> block if present (reasoning models)
         if "<think>" in raw:
             raw = raw.split("</think>")[-1].strip()
-            
+
         is_sarcasm = "no"
         toxicity   = "NEUTRAL"
         meaning    = content

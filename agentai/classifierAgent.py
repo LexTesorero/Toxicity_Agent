@@ -1,9 +1,9 @@
-from rag_setup import ToxicityRAG
+from llm_registry import LLMRegistry
 import re
 
 class ClassifierAgent:
-    def __init__(self, rag: ToxicityRAG):
-        self.rag = rag
+    def __init__(self, registry: LLMRegistry):
+        self.registry = registry
         print("   Classifier ready")
 
     def _build_prompt(self, content: str, sarcasm_result: dict) -> str:
@@ -24,7 +24,7 @@ class ClassifierAgent:
                 "Classify at face value, but be aware the true intent is uncertain.\n"
             )
 
-        text_to_classify = meaning if is_sarcasm == "sarcastic" else content  # Fix 2: was always `meaning`
+        text_to_classify = meaning if is_sarcasm == "sarcastic" else content
 
         return f"""You are a strict content classification engine.
 
@@ -46,29 +46,26 @@ GOOD - SUPPORTIVE
 Reply with these LABELS ONLY. No extra punctuation other than the hyphen. No additional explanation."""
 
     def classify(self, content: str, sarcasm_result: dict) -> tuple[str, str]:
-        prompt = self._build_prompt(content, sarcasm_result)
-        raw_response = self.rag.llm_classifier.invoke(prompt)
+        prompt       = self._build_prompt(content, sarcasm_result)
+        raw_response = self.registry.llm_classifier.invoke(prompt)
 
-        # extract text first, then strip <think>
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
         if "<think>" in raw:
             raw = raw.split("</think>")[-1].strip()
 
-        # scan line by line — only trust lines that match the expected format
         TOXICITY  = None
         SUB_LABEL = None
 
         for line in raw.splitlines():
-            line = line.strip().upper()
+            line  = line.strip().upper()
             match = re.match(r'^(TOXIC|NEUTRAL|GOOD)\s*-\s*([A-Z][A-Z\s]+?)$', line)
             if match:
                 TOXICITY  = match.group(1).strip()
                 SUB_LABEL = match.group(2).strip()
-                break  # take the first valid line, ignore everything after
+                break
 
-        # fallback if no valid line found
         if not TOXICITY:
-            fallback = re.search(r'\b(TOXIC|NEUTRAL|GOOD)\b', raw.upper())
+            fallback  = re.search(r'\b(TOXIC|NEUTRAL|GOOD)\b', raw.upper())
             TOXICITY  = fallback.group(1) if fallback else "NEUTRAL"
             SUB_LABEL = "UNKNOWN"
 

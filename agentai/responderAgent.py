@@ -1,15 +1,15 @@
-from rag_setup import ToxicityRAG
+from llm_registry import LLMRegistry
 import re
 
 # Responsibility: Given the text + confirmed classification,
 # produce a human-readable explanation AND a message to the
 # author (only for TOXIC content).
 class ResponderAgent:
-    def __init__(self, rag: ToxicityRAG):
-        self.rag = rag 
+    def __init__(self, registry: LLMRegistry):
+        self.registry = registry
         print("   Responder ready")
 
-    def _build_prompt(self, content: str, classification: str, sub_label:str, sarcasm_result: dict) -> str:
+    def _build_prompt(self, content: str, classification: str, sub_label: str, sarcasm_result: dict) -> str:
         is_sarcasm = sarcasm_result["is_sarcasm"]
         meaning    = sarcasm_result["meaning"]
 
@@ -39,9 +39,9 @@ Respond in EXACTLY this format — no extra lines:
 Explanation: [your explanation]"""
 
     def respond(self, content: str, classification: str, sub_label: str, sarcasm_result: dict) -> str:
-        prompt = self._build_prompt(content, classification, sub_label, sarcasm_result)
-        raw_response = self.rag.llm_responder.invoke(prompt)
-        raw = raw_response.content if hasattr(raw_response, "content") else raw_response
+        prompt       = self._build_prompt(content, classification, sub_label, sarcasm_result)
+        raw_response = self.registry.llm_responder.invoke(prompt)
+        raw          = raw_response.content if hasattr(raw_response, "content") else raw_response
 
         if "<think>" in raw:
             raw = raw.split("</think>")[-1].strip()

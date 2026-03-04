@@ -1,9 +1,9 @@
-from rag_setup import ToxicityRAG
+from llm_registry import LLMRegistry
 
 class TranslatorAgent:
-    def __init__(self, rag: ToxicityRAG):
-        self.rag = rag
-        print("   Translator ready (Qwen3)")
+    def __init__(self, registry: LLMRegistry):
+        self.registry = registry
+        print("   Translator ready")
 
     def _build_prompt(self, content: str) -> str:
         return f"""You are a strict multilingual language detection and translation engine.
@@ -38,11 +38,11 @@ Input text:
 
     def translate(self, content: str) -> dict:
         prompt = self._build_prompt(content)
-        raw_response = self.rag.llm_translator.invoke(prompt)
+        raw_response = self.registry.llm_translator.invoke(prompt)
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
         raw = raw.strip()
 
-        # strip <think> block if present (Qwen3 reasoning model)
+        # strip <think> block if present
         if "<think>" in raw:
             raw = raw.split("</think>")[-1].strip()
 
