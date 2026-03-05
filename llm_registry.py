@@ -34,7 +34,7 @@ class LLMRegistry:
 
     @property
     def llm_classifier(self):
-        return self.llm_gpt_safe
+        return self.llm_gpt
 
     @property
     def llm_responder(self):

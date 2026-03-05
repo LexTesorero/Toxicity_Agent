@@ -9,7 +9,7 @@ class ResponderAgent:
         self.registry = registry
         print("   Responder ready")
 
-    def _build_prompt(self, content: str, classification: str, sub_label: str, sarcasm_result: dict) -> str:
+    def _build_prompt(self, content: str, classification: str, sub_label: str, sarcasm_result: dict, reason: str) -> str:
         is_sarcasm = sarcasm_result["is_sarcasm"]
         meaning    = sarcasm_result["meaning"]
 
@@ -31,15 +31,16 @@ class ResponderAgent:
 ORIGINAL TEXT: \"\"\"{content}\"\"\"
 TOXICITY_LEVEL: {classification}
 TYPE: {sub_label}
-{sarcasm_context}
+REASON: \"\"\"{reason}\"\"\"
+SARCASM CONTEXT: {sarcasm_context}
 Write a clear 3 sentence explanation of WHY this text is classified as {classification} and {sub_label}.
 Reference specific words or tone from the text.
 
 Respond in EXACTLY this format — no extra lines:
 Explanation: [your explanation]"""
 
-    def respond(self, content: str, classification: str, sub_label: str, sarcasm_result: dict) -> str:
-        prompt       = self._build_prompt(content, classification, sub_label, sarcasm_result)
+    def respond(self, content: str, classification: str, sub_label: str, sarcasm_result: dict, reason:str) -> str:
+        prompt       = self._build_prompt(content, classification, sub_label, sarcasm_result, reason)
         raw_response = self.registry.llm_responder.invoke(prompt)
         raw          = raw_response.content if hasattr(raw_response, "content") else raw_response
 

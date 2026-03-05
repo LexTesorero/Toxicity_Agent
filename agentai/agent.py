@@ -21,9 +21,9 @@ class ToxicityAgent:
 
         translation         = self.translator.translate(content)
         working_content     = translation["translated"]
-        sarcasm_result      = self.sarcasm.detect(working_content)
-        toxicity, sub_label = self.classifier.classify(working_content, sarcasm_result)
-        explanation         = self.responder.respond(working_content, toxicity, sub_label, sarcasm_result)
+        sarcasm_result      = self.sarcasm.detect(content, working_content)
+        toxicity, sub_label, reason = self.classifier.classify(content, working_content, sarcasm_result)
+        explanation         = self.responder.respond(working_content, toxicity, sub_label, sarcasm_result, reason)
 
         print(f"\n  Pipeline complete → {toxicity} (sarcasm: {sarcasm_result['is_sarcasm']})")
 

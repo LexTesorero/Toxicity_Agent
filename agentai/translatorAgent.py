@@ -59,7 +59,9 @@ Input text:
             elif line.upper().startswith("IS_ENGLISH:"):
                 result["is_english"] = line.split(":", 1)[1].strip().upper() == "YES"
             elif line.upper().startswith("TRANSLATED:"):
-                result["translated"] = line.split(":", 1)[1].strip()
+                idx = raw.upper().find("TRANSLATED:")
+                result["translated"] = raw[idx:].split(":", 1)[1].strip()
+                break  
 
         translation_preview = "(English — no translation needed)" if result["is_english"] else f"→ {result['translated'][:80]}"
         print(f"     Translator: [{result['detected_language']}] {translation_preview}")

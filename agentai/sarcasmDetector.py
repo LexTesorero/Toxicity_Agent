@@ -5,7 +5,7 @@ class SarcasmDetector:
         self.registry = registry
         print("   SarcasmDetector ready")
 
-    def _build_prompt(self, content: str) -> str:
+    def _build_prompt(self, orig: str, content: str) -> str:
         text_length = len(content.split())
 
         if text_length <= 16:
@@ -36,9 +36,9 @@ class SarcasmDetector:
     - TOXIC    : hateful, harmful, or offensive
 
     ANALYSIS APPROACH:
-    {analysis_instruction}
+    \"\"\"{analysis_instruction}\"\"\"
 
-    TEXT:
+    {orig}TEXT TO ANALYZE:
     \"\"\"{content}\"\"\"
 
     Reply in EXACTLY this format with no extra text:
@@ -46,8 +46,8 @@ class SarcasmDetector:
     TOXICITY: [GOOD/NEUTRAL/TOXIC]
     TRUE_MEANING: [true meaning if YES, otherwise repeat the original text]"""
 
-    def detect(self, content: str) -> dict:
-        prompt = self._build_prompt(content)
+    def detect(self, orig: str, content: str) -> dict:
+        prompt = self._build_prompt(orig, content)
         raw_response = self.registry.llm_sarcasm.invoke(prompt)
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
         raw = raw.strip().upper()

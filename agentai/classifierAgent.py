@@ -6,7 +6,7 @@ class ClassifierAgent:
         self.registry = registry
         print("   Classifier ready")
 
-    def _build_prompt(self, content: str, sarcasm_result: dict) -> str:
+    def _build_prompt(self, orig:str, content: str, sarcasm_result: dict) -> str:
         is_sarcasm = sarcasm_result["is_sarcasm"]
         meaning    = sarcasm_result["meaning"]
 
@@ -14,6 +14,7 @@ class ClassifierAgent:
         if is_sarcasm == "sarcastic":
             sarcasm_note = (
                 f"\nNOTE: The original text was sarcastic.\n"
+                f"  Non-Translated Text: \"\"\"{orig}\"\"\"\n"
                 f"  Original:     \"{content}\"\n"
                 f"  True meaning: \"{meaning}\"\n"
                 f"Classify based on the TRUE MEANING, not the literal words.\n"
@@ -33,20 +34,20 @@ DEFINITIONS:
 - NEUTRAL : factual statements, disagreements without hostility, questions, constructive criticism
 - GOOD    : supportive, encouraging, appreciative, respectful, constructive communication
 {sarcasm_note}
+NON-TRANSLATED TEXT:
+\"\"\"{orig}\"\"\"
+
 TEXT TO CLASSIFY:
 \"\"\"{text_to_classify}\"\"\"
 
-OUTPUT ONE LINE ONLY. Stop immediately after the sub-label.
-Do not add periods, explanations, or any text after the sub-label.
+Reply in EXACTLY this format — no extra lines, no punctuation after the sub-label:
+LABEL: TOXIC - HATE SPEECH
+REASON: [one sentence explaining why, referencing specific words or tone]
 
-TOXIC - HATE SPEECH
-NEUTRAL - FACTUAL STATEMENTS
-GOOD - SUPPORTIVE
+Use only these labels: TOXIC, NEUTRAL, GOOD"""
 
-Reply with these LABELS ONLY. No extra punctuation other than the hyphen. No additional explanation."""
-
-    def classify(self, content: str, sarcasm_result: dict) -> tuple[str, str]:
-        prompt       = self._build_prompt(content, sarcasm_result)
+    def classify(self, orig: str, content: str, sarcasm_result: dict) -> tuple[str, str, str]:
+        prompt       = self._build_prompt(orig, content, sarcasm_result)
         raw_response = self.registry.llm_classifier.invoke(prompt)
 
         raw = raw_response.content if hasattr(raw_response, "content") else raw_response
@@ -55,14 +56,20 @@ Reply with these LABELS ONLY. No extra punctuation other than the hyphen. No add
 
         TOXICITY  = None
         SUB_LABEL = None
+        REASON    = "No reason provided."
 
         for line in raw.splitlines():
-            line  = line.strip().upper()
-            match = re.match(r'^(TOXIC|NEUTRAL|GOOD)\s*-\s*([A-Z][A-Z\s]+?)$', line)
-            if match:
-                TOXICITY  = match.group(1).strip()
-                SUB_LABEL = match.group(2).strip()
-                break
+            stripped = line.strip()
+
+            if stripped.upper().startswith("LABEL:"):
+                label_part = stripped[6:].strip().upper()
+                match = re.match(r'^(TOXIC|NEUTRAL|GOOD)\s*-\s*([A-Z][A-Z\s]+?)$', label_part)
+                if match:
+                    TOXICITY  = match.group(1).strip()
+                    SUB_LABEL = match.group(2).strip()
+
+            elif stripped.upper().startswith("REASON:"):
+                REASON = stripped[7:].strip()
 
         if not TOXICITY:
             fallback  = re.search(r'\b(TOXIC|NEUTRAL|GOOD)\b', raw.upper())
@@ -70,4 +77,5 @@ Reply with these LABELS ONLY. No extra punctuation other than the hyphen. No add
             SUB_LABEL = "UNKNOWN"
 
         print(f"     Classifier: {TOXICITY.capitalize()} - {SUB_LABEL.lower()}")
-        return TOXICITY, SUB_LABEL
+        print(f"     Reason: {REASON[:120]}{'…' if len(REASON) > 120 else ''}")
+        return TOXICITY, SUB_LABEL, REASON
