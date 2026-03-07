@@ -178,10 +178,28 @@ body,
         6px 6px 0 rgba(0,0,0,0.6),
         inset 0 0 0 1px rgba(255,255,255,0.03);
     animation: containerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: border-color 0.2s;
 }
-@keyframes containerSlideIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+.mother-container.toxic {
+    border-color: var(--toxic-red);
+    box-shadow:
+        6px 6px 0 rgba(0,0,0,0.6),
+        0 0 18px rgba(255, 51, 51, 0.15),
+        inset 0 0 0 1px rgba(255,51,51,0.08);
+}
+.mother-container.neutral {
+    border-color: var(--neutral-amber);
+    box-shadow:
+        6px 6px 0 rgba(0,0,0,0.6),
+        0 0 18px rgba(255, 170, 0, 0.1),
+        inset 0 0 0 1px rgba(255,170,0,0.05);
+}
+.mother-container.good {
+    border-color: var(--good-green);
+    box-shadow:
+        6px 6px 0 rgba(0,0,0,0.6),
+        0 0 18px rgba(51, 255, 102, 0.1),
+        inset 0 0 0 1px rgba(51,255,102,0.05);
 }
 
 .mother-header {
@@ -192,21 +210,13 @@ body,
     align-items: center;
     gap: 0.75rem;
 }
-.mother-header-label {
-    font-family: var(--font-pixel) !important;
-    font-size: 0.42rem !important;
-    color: var(--text-muted) !important;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-.mother-header-input {
-    font-family: var(--font-vt) !important;
-    font-size: 1.15rem !important;
-    color: var(--text-dim) !important;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.mother-header.toxic   { border-bottom-color: var(--toxic-red); }
+.mother-header.neutral { border-bottom-color: var(--neutral-amber); }
+.mother-header.good    { border-bottom-color: var(--good-green); }
+
+@keyframes containerSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── AGENT SECTION BASE ────────────────────────────────────── */
@@ -230,6 +240,23 @@ body,
 .tag-sarcasm    { color: var(--agent-sarcasm);    border-color: var(--agent-sarcasm); }
 .tag-responder  { color: var(--agent-responder);  border-color: var(--agent-responder); }
 
+/* ─── FULL INPUT DISPLAY ────────────────────────────────────── */
+.agent-section.input-full {
+    background: rgba(255, 255, 255, 0.02);
+}
+.input-line {
+    font-family: var(--font-vt) !important;
+    font-size: 1.2rem !important;
+    color: var(--text-primary) !important;
+    line-height: 1.7 !important;
+    margin: 0 0 0.3rem 0;
+    opacity: 0.88;
+}
+.input-line:last-child { margin-bottom: 0; }
+.input-break {
+    height: 0.6rem;
+}
+
 /* ─── CLASSIFIER AGENT ──────────────────────────────────────── */
 .classifier-bubble {
     display: inline-flex;
@@ -245,11 +272,12 @@ body,
     inset: 0;
     opacity: 0.08;
     background: currentColor;
+    pointer-events: none;
 }
 
-.classifier-bubble.toxic   { color: var(--toxic-red);    border-color: var(--toxic-red);    background: var(--toxic-red-dim); }
-.classifier-bubble.neutral { color: var(--neutral-amber); border-color: var(--neutral-amber); background: var(--neutral-dim); }
-.classifier-bubble.good    { color: var(--good-green);   border-color: var(--good-green);   background: var(--good-dim); }
+.classifier-bubble.toxic   { color: var(--toxic-red);     border-color: var(--toxic-red);     background: var(--toxic-red-dim); }
+.classifier-bubble.neutral { color: var(--neutral-amber);  border-color: var(--neutral-amber);  background: var(--neutral-dim); }
+.classifier-bubble.good    { color: var(--good-green);    border-color: var(--good-green);    background: var(--good-dim); }
 
 .tox-level {
     font-family: var(--font-pixel) !important;
@@ -278,11 +306,12 @@ body,
     inset: 0;
     opacity: 0.06;
     background: currentColor;
+    pointer-events: none;
 }
 
-.sarcasm-bubble.sarcastic  { color: var(--sarcasm-orange);  border-color: var(--sarcasm-orange);  background: var(--sarcasm-dim); }
-.sarcasm-bubble.ambiguous  { color: var(--ambiguous-yellow); border-color: var(--ambiguous-yellow); background: var(--ambiguous-dim); }
-.sarcasm-bubble.no         { color: var(--clean-teal);      border-color: var(--clean-teal);      background: var(--clean-dim); }
+.sarcasm-bubble.sarcastic { color: var(--sarcasm-orange);   border-color: var(--sarcasm-orange);   background: var(--sarcasm-dim); }
+.sarcasm-bubble.ambiguous { color: var(--ambiguous-yellow); border-color: var(--ambiguous-yellow); background: var(--ambiguous-dim); }
+.sarcasm-bubble.no        { color: var(--clean-teal);       border-color: var(--clean-teal);       background: var(--clean-dim); }
 
 .sarcasm-status {
     font-family: var(--font-pixel) !important;
@@ -298,13 +327,74 @@ body,
 
 /* ─── RESPONDER AGENT ───────────────────────────────────────── */
 .responder-text {
+    border-left: var(--pixel-size) solid var(--agent-responder);
+    padding-left: 0.9rem;
+    opacity: 0.92;
+}
+.responder-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.responder-list li {
     font-family: var(--font-vt) !important;
     font-size: 1.35rem !important;
     color: var(--text-primary) !important;
     line-height: 1.6 !important;
-    border-left: var(--pixel-size) solid var(--agent-responder);
-    padding-left: 0.9rem;
-    opacity: 0.92;
+    padding-left: 1.1em;
+    position: relative;
+}
+.responder-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--agent-responder);
+    opacity: 0.7;
+    font-size: 0.9em;
+    top: 0.05em;
+}
+.responder-para {
+    font-family: var(--font-vt) !important;
+    font-size: 1.35rem !important;
+    color: var(--text-primary) !important;
+    line-height: 1.6 !important;
+    margin: 0 0 0.45rem 0;
+}
+.responder-para:last-child { margin-bottom: 0; }
+
+/* ─── TOXIC TINT (all sections except sarcasm) ──────────────── */
+.agent-section.toxic-tint {
+    background: rgba(255, 80, 80, 0.07);
+}
+
+/* Dark red text for all content inside toxic-tinted sections */
+.agent-section.toxic-tint .input-line,
+.agent-section.toxic-tint .responder-para,
+.agent-section.toxic-tint .responder-list li {
+    color: #c0393b !important;
+}
+
+/* Responder left border turns red */
+.agent-section.toxic-tint .responder-text {
+    border-left-color: var(--toxic-red);
+}
+
+/* Responder bullet marker turns red */
+.agent-section.toxic-tint .responder-list li::before {
+    color: var(--toxic-red);
+}
+
+/* Agent tag text stays its own color but border picks up red tint */
+.agent-section.toxic-tint .tag-responder {
+    color: #c0393b;
+    border-color: #c0393b;
+}
+.agent-section.toxic-tint .tag-classifier {
+    color: #c0393b;
+    border-color: #c0393b;
 }
 
 /* ─── TRANSLATION NOTICE ────────────────────────────────────── */

@@ -1,7 +1,9 @@
 import streamlit as st
 from pathlib import Path
+import re
+import html
 
-# ── Page config (must be first Streamlit call) ────────────────────────────────
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ToxicityAgent",
     page_icon="🛡️",
@@ -28,7 +30,6 @@ except Exception:
     MOCK = True
 
 def mock_analyze(text: str) -> dict:
-    """Placeholder result used when the real agent is unavailable."""
     lower = text.lower()
     if any(w in lower for w in ["hate", "kill", "idiot", "stupid"]):
         cls, sub = "TOXIC", "Hate Speech"
@@ -45,6 +46,7 @@ def mock_analyze(text: str) -> dict:
 
     return {
         "classification":    cls,
+        "sub_label":         sub,
         "explanation":       "This is a mock response — connect the real ToxicityAgent to enable AI analysis.",
         "is_sarcasm":        sarcasm,
         "meaning":           meaning,
@@ -56,109 +58,150 @@ def mock_analyze(text: str) -> dict:
 def analyze(text: str) -> dict:
     return mock_analyze(text) if MOCK else agent.detect_and_respond(text)
 
+# ── HTML helpers ──────────────────────────────────────────────────────────────
+
+def compact(s: str) -> str:
+    """Remove blank lines so Streamlit's Markdown parser never exits an HTML block early."""
+    return "\n".join(line for line in s.splitlines() if line.strip())
+
 # ── HTML builders ─────────────────────────────────────────────────────────────
 
 def build_classifier_section(result: dict) -> str:
-    cls      = result["classification"]          # TOXIC | NEUTRAL | GOOD
-    sub      = result.get("sub_label", "—")      # sub-label from agent
-    css_cls  = cls.lower()                        # maps to CSS class
+    cls     = result.get("classification", "NEUTRAL").strip().upper()
+    sub     = html.escape(result.get("sub_label", "—"))
+    css_cls = cls.lower()
 
-    return f"""
-    <div class="agent-section">
+    toxic_mod = "toxic-tint" if css_cls == "toxic" else ""
+
+    return compact(f"""
+    <div class="agent-section {toxic_mod}">
         <span class="agent-tag tag-classifier">Classifier</span>
-        <br>
         <div class="classifier-bubble {css_cls}">
             <span class="tox-level">{cls}</span>
             <span class="tox-sublabel">{sub}</span>
         </div>
     </div>
-    """
+    """)
+
 
 def build_sarcasm_section(result: dict) -> str:
-    sarcasm  = result["is_sarcasm"]              # sarcastic | ambiguous | no
-    meaning  = result.get("meaning", "")
-    css_cls  = sarcasm.lower()
+    sarcasm = result.get("is_sarcasm", "no").strip().lower()
+    meaning = html.escape(result.get("meaning", ""))
 
     label_map = {
-        "sarcastic":  "SARCASM DETECTED",
-        "ambiguous":  "AMBIGUOUS TONE",
-        "no":         "NO SARCASM",
+        "sarcastic": "SARCASM DETECTED",
+        "ambiguous": "AMBIGUOUS TONE",
+        "no":        "NO SARCASM",
     }
-    label = label_map.get(css_cls, "UNKNOWN")
+    label = label_map.get(sarcasm, "UNKNOWN")
 
-    meaning_html = ""
-    if meaning:
-        meaning_html = f'<div class="sarcasm-meaning">↳ {meaning}</div>'
+    meaning_html = (
+        f'<div class="sarcasm-meaning">&#8627; {meaning}</div>'
+        if sarcasm == "YES" and meaning else ""
+    )
 
-    return f"""
+    return compact(f"""
     <div class="agent-section">
         <span class="agent-tag tag-sarcasm">Sarcasm Detector</span>
-        <br>
-        <div class="sarcasm-bubble {css_cls}">
+        <div class="sarcasm-bubble {sarcasm}">
             <div>
                 <span class="sarcasm-status">{label}</span>
                 {meaning_html}
             </div>
         </div>
     </div>
-    """
+    """)
+
 
 def build_responder_section(result: dict) -> str:
-    explanation = result.get("explanation", "No response generated.")
+    explanation = result.get("explanation", "No response generated.").strip()
+    cls         = result.get("classification", "NEUTRAL").strip().lower()
+    toxic_mod   = "toxic-tint" if cls == "toxic" else ""
 
-    return f"""
-    <div class="agent-section">
+    lines      = explanation.splitlines()
+    bullet_re  = re.compile(r'^-\s+(.+)')
+    html_lines = []
+    in_list    = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+            continue
+
+        m = bullet_re.match(stripped)
+        if m:
+            if not in_list:
+                html_lines.append('<ul class="responder-list">')
+                in_list = True
+            html_lines.append(f"<li>{html.escape(m.group(1))}</li>")
+        else:
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+            html_lines.append(f'<p class="responder-para">{html.escape(stripped)}</p>')
+
+    if in_list:
+        html_lines.append("</ul>")
+
+    body = "\n".join(html_lines)
+
+    return compact(f"""
+    <div class="agent-section {toxic_mod}">
         <span class="agent-tag tag-responder">Responder</span>
-        <br>
-        <p class="responder-text">{explanation}</p>
+        <div class="responder-text">{body}</div>
     </div>
-    """
+    """)
+
 
 def build_mother_container(result: dict) -> str:
     original  = result.get("original", "")
-    lang      = result.get("detected_language", "en")
-    translated = result.get("translated")
+    cls       = result.get("classification", "NEUTRAL").strip().lower()
+    toxic_mod = "toxic-tint" if cls == "toxic" else ""
 
-    classifier_html = build_classifier_section(result)
-    sarcasm_html    = build_sarcasm_section(result)
-    responder_html  = build_responder_section(result)
+    flat    = " ".join(original.splitlines()).strip()
+    preview = html.escape((flat[:72] + "…") if len(flat) > 72 else flat)
 
-    # Truncate displayed input for header
-    preview = (original[:72] + "…") if len(original) > 72 else original
+    original_html = "".join(
+        f'<p class="input-line">{html.escape(line)}</p>' if line.strip()
+        else '<div class="input-break"></div>'
+        for line in original.splitlines()
+    ) or f'<p class="input-line">{html.escape(original)}</p>'
 
-    return f"""
-    <div class="mother-container">
-        <div class="mother-header">
+    return compact(f"""
+    <div class="mother-container {cls}">
+        <div class="mother-header {cls}">
             <span class="mother-header-label">INPUT</span>
             <span class="mother-header-input">{preview}</span>
         </div>
-        {classifier_html}
-        {sarcasm_html}
-        {responder_html}
+        <div class="agent-section input-full {toxic_mod}">
+            {original_html}
+        </div>
+        {build_classifier_section(result)}
+        {build_sarcasm_section(result)}
+        {build_responder_section(result)}
     </div>
-    """
-
-# ── Session state ─────────────────────────────────────────────────────────────
-if "history" not in st.session_state:
-    st.session_state.history = []   # list of result dicts, newest first
+    """)
 
 # ── Layout ────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(compact("""
 <div class="page-header">
     <div class="page-title">TOXICITY AGENT</div>
     <div class="page-subtitle">multi-agent content analysis system</div>
 </div>
-""", unsafe_allow_html=True)
+"""), unsafe_allow_html=True)
 
 if MOCK:
-    st.markdown("""
+    st.markdown(compact("""
     <div style="font-family:var(--font-pixel);font-size:0.38rem;color:#ffaa00;
                 border:2px solid #ffaa00;padding:0.5rem 0.8rem;margin-bottom:1.2rem;">
         DEMO MODE &nbsp;|&nbsp; Real agent not found — showing mock responses
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
-# Input form
+# ── Input form ────────────────────────────────────────────────────────────────
 with st.form(key="analyze_form", clear_on_submit=False):
     user_input = st.text_area(
         "CONTENT TO ANALYZE",
@@ -167,20 +210,15 @@ with st.form(key="analyze_form", clear_on_submit=False):
     )
     submitted = st.form_submit_button("ANALYZE")
 
+st.markdown('<div class="pixel-divider"></div>', unsafe_allow_html=True)
+
+# ── Result ────────────────────────────────────────────────────────────────────
 if submitted and user_input.strip():
     with st.spinner("Running pipeline…"):
         result = analyze(user_input.strip())
-    st.session_state.history.insert(0, result)
-
-# Divider
-st.markdown('<div class="pixel-divider"></div>', unsafe_allow_html=True)
-
-# Render history
-if st.session_state.history:
-    for result in st.session_state.history:
-        st.markdown(build_mother_container(result), unsafe_allow_html=True)
+    st.markdown(build_mother_container(result), unsafe_allow_html=True)
 else:
-    st.markdown("""
+    st.markdown(compact("""
     <div class="empty-state">
         <span class="empty-state-icon">[]</span>
         <p class="empty-state-text">
@@ -188,4 +226,4 @@ else:
             ENTER TEXT ABOVE AND HIT ANALYZE
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)

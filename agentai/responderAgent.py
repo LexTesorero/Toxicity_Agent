@@ -36,21 +36,30 @@ SARCASM CONTEXT: {sarcasm_context}
 Write a clear 3 sentence explanation of WHY this text is classified as {classification} and {sub_label}.
 Reference specific words or tone from the text.
 
-Respond in EXACTLY this format — no extra lines:
-Explanation: [your explanation]"""
+Respond in EXACTLY this format — no extra lines, no other bullet symbols:
+Explanation:
+- [first reason]
+- [second reason]
+- [third reason]
+Keep all reasons concised
+"""
 
-    def respond(self, content: str, classification: str, sub_label: str, sarcasm_result: dict, reason:str) -> str:
+    def respond(self, content: str, classification: str, sub_label: str, sarcasm_result: dict, reason: str) -> str:
         prompt       = self._build_prompt(content, classification, sub_label, sarcasm_result, reason)
         raw_response = self.registry.llm_responder.invoke(prompt)
         raw          = raw_response.content if hasattr(raw_response, "content") else raw_response
 
         if "<think>" in raw:
             raw = raw.split("</think>")[-1].strip()
-        match = re.search(r'Explanation:\s*(.+)', raw, re.IGNORECASE | re.DOTALL)
-        if match:
-            explanation = match.group(1).strip()
-        else:
-            explanation = raw.strip()
 
-        print(f"     Responder: {explanation[:180]}{'…' if len(explanation) > 80 else ''}")
+        match = re.search(r'Explanation:\s*(.+)', raw, re.IGNORECASE | re.DOTALL)
+        explanation = match.group(1).strip() if match else raw.strip()
+
+        # Fallback: if LLM still used •, normalize to "- "
+        if '•' in explanation:
+            parts = re.split(r'\s*•\s*', explanation)
+            explanation = "\n".join(f"- {p.strip()}" for p in parts if p.strip())
+
+        preview = explanation.replace("\n", " ")
+        print(f"     Responder: {preview[:180]}{'…' if len(preview) > 180 else ''}")
         return explanation
