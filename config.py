@@ -25,7 +25,7 @@ MODELS = {
 MODEL_CONFIGS = {
     LLMProvider.GROQ: {
         "gpt": {
-            "temperature":      1,
+            "temperature":      0.3,
             "reasoning_effort": "medium",
             "model_kwargs": {
                 "max_completion_tokens": 8192,

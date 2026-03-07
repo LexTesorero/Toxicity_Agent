@@ -47,3 +47,6 @@ config.yaml
 # OS Files
 .DS_Store
 Thumbs.db
+
+#test results
+**/performance_results.json

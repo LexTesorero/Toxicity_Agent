@@ -33,6 +33,27 @@ DEFINITIONS:
 - TOXIC   : hate speech, threats, harassment, discrimination, personal attacks, obscene language
 - NEUTRAL : factual statements, disagreements without hostility, questions, constructive criticism
 - GOOD    : supportive, encouraging, appreciative, respectful, constructive communication
+
+VALID LABELS (you must use one of these exactly):
+TOXIC   - HATE SPEECH
+TOXIC   - THREAT
+TOXIC   - HARASSMENT
+TOXIC   - PERSONAL ATTACK
+TOXIC   - OBSCENE LANGUAGE
+NEUTRAL - FACTUAL STATEMENT
+NEUTRAL - CONSTRUCTIVE CRITICISM
+NEUTRAL - QUESTION
+NEUTRAL - DISAGREEMENT
+GOOD    - SUPPORTIVE
+GOOD    - APPRECIATIVE
+GOOD    - ENCOURAGING
+GOOD    - RESPECTFUL
+
+CRITICAL CONTEXT RULES:
+1. DO NOT classify a text as TOXIC solely because it contains profanity, slurs, or sensitive words.
+2. Evaluate the TARGET: Is the word being used as a weapon to attack, demean, or harass someone? If yes, it is TOXIC.
+3. Evaluate for RECLAMATION/SELF-REFERENCE: If a user is using a marginalized term to refer to themselves or as a term of endearment within their own community, label it NEUTRAL or GOOD.
+4. Evaluate for QUOTING: If the user is clearly quoting a movie, song, or discussing a word educationally without malicious intent, label it NEUTRAL.
 {sarcasm_note}
 NON-TRANSLATED TEXT:
 \"\"\"{orig}\"\"\"
@@ -40,11 +61,9 @@ NON-TRANSLATED TEXT:
 TEXT TO CLASSIFY:
 \"\"\"{text_to_classify}\"\"\"
 
-Reply in EXACTLY this format — no extra lines, no punctuation after the sub-label:
+Reply in EXACTLY this format — no extra lines:
 LABEL: TOXIC - HATE SPEECH
-REASON: [one sentence explaining why, referencing specific words or tone]
-
-Use only these labels: TOXIC, NEUTRAL, GOOD"""
+REASON: [one sentence explaining why, referencing specific words or tone]"""
 
     def classify(self, orig: str, content: str, sarcasm_result: dict) -> tuple[str, str, str]:
         prompt       = self._build_prompt(orig, content, sarcasm_result)
